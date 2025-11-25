@@ -1,69 +1,71 @@
-# marine_docking/utils/thruster_model.py
+# isaaclab_tasks/marine_docking/utils/thruster_model.py
 
-"""
-Simple twin-thruster model for small yacht / motorboat.
-
-We assume:
-- Left (port) and right (starboard) thrusters
-- Both produce forward/reverse thrust along the hull's x-axis
-- Their lateral separation creates a yaw moment when throttles differ
-
-This is standard in marine control literature and is realistic enough
-for RL docking and control.
-"""
-
+import torch
 from dataclasses import dataclass
-import math
 
+
+# ------------------------------------------------------------
+# Correct saturate for tensors (FIXED)
+# ------------------------------------------------------------
+def saturate(x, min_v, max_v):
+    """Clamp tensor actions safely."""
+    return torch.clamp(x, min_v, max_v)
+
+
+# ------------------------------------------------------------
+# Thruster parameter dataclass
+# ------------------------------------------------------------
 @dataclass
 class ThrusterParams:
-    max_thrust: float        # N (per thruster)
-    lateral_offset: float    # m (distance from centerline to each thruster)
-    response_time: float = 0.4  # s, simple first-order lag
+    max_thrust: float = 4000.0
+    lateral_offset: float = 1.0  # meters from centerline
 
-def saturate(value: float, min_v: float, max_v: float) -> float:
-    return max(min_v, min(max_v, value))
 
+# ------------------------------------------------------------
+# Twin thruster model (left + right)
+# ------------------------------------------------------------
 class TwinThrusterModel:
     def __init__(self, params: ThrusterParams):
         self.params = params
-        # Internal state for simple thrust lag model
-        self.left_thrust = 0.0
-        self.right_thrust = 0.0
+
+        # last outputs
+        self.last_force = None
+        self.last_moment = None
 
     def reset(self):
-        self.left_thrust = 0.0
-        self.right_thrust = 0.0
+        self.last_force = None
+        self.last_moment = None
 
-    def step(self, action_left: float, action_right: float, dt: float):
+    def step(self, action_left, action_right, dt):
         """
-        Update thruster forces given control actions in [-1, 1].
-
-        Args:
-            action_left, action_right: throttle commands [-1, 1]
-            dt: timestep [s]
+        Inputs:
+            action_left  : tensor [N] in [-1,1]
+            action_right : tensor [N] in [-1,1]
+            dt           : float
 
         Returns:
-            Fx, Mz: net surge force and yaw moment (body frame)
+            Fx : surge force   [N]
+            Mz : yaw moment    [Nm]
         """
+        # Ensure tensors
+        device = action_left.device
+
         aL = saturate(action_left, -1.0, 1.0)
         aR = saturate(action_right, -1.0, 1.0)
 
-        target_left = aL * self.params.max_thrust
-        target_right = aR * self.params.max_thrust
+        # Convert thrust from normalized input → Newtons
+        T = self.params.max_thrust
+        Fx_left = aL * T
+        Fx_right = aR * T
 
-        # First-order lag: dT/dt = (T_target - T) / tau
-        tau = max(self.params.response_time, 1e-4)
-        alpha = saturate(dt / tau, 0.0, 1.0)
+        # Total forward force
+        Fx_total = Fx_left + Fx_right
 
-        self.left_thrust += alpha * (target_left - self.left_thrust)
-        self.right_thrust += alpha * (target_right - self.right_thrust)
+        # Yaw moment (difference in thrust * lever arm)
+        d = self.params.lateral_offset
+        Mz_total = (Fx_right - Fx_left) * d
 
-        # Net surge force
-        Fx = self.left_thrust + self.right_thrust
+        self.last_force = Fx_total
+        self.last_moment = Mz_total
 
-        # Yaw moment: opposite-signed thrusts create rotation
-        # Mz = (T_R - T_L) * lateral_offset
-        Mz = (self.right_thrust - self.left_thrust) * self.params.lateral_offset
-
-        return Fx, Mz
+        return Fx_total, Mz_total

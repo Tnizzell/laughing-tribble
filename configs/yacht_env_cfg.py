@@ -48,7 +48,9 @@ class YachtEnvCfg(DirectRLEnvCfg):
 
     # SENSORS
     sensors: dict = field(default_factory=lambda: {
-        "ray_lidar": make_lidar_cfg(),
+        "ray_lidar": make_lidar_cfg().replace(
+            mesh_prim_paths=["/World"],   # REQUIRED FIX
+        ),
         "camera_front": CameraCfg(
             prim_path="/World/envs/env_*/Yacht/Camera",
             update_period=1,
