@@ -8,6 +8,8 @@ import torch
 from isaaclab.envs import DirectRLEnv
 from isaaclab.utils.math import wrap_to_pi
 
+from isaaclab.sim import DistantLightCfg
+
 from isaaclab_tasks.marine_docking.utils.thruster_model import (
     ThrusterParams,
     TwinThrusterModel,
@@ -230,6 +232,13 @@ class YachtDockingEnv(DirectRLEnv):
     # ======================================================================
     # Helper methods
     # ======================================================================
+    def _setup_scene(self):
+        self.yacht = self.scene["yacht"]
+        self.dock = self.scene["dock"]
+        
+        # Resolve the rigid body indices
+        self._yacht_body_idx = self.yacht.body_indices[0]
+
 
     def _reset_idx(self, env_ids: Sequence[int]):
         """

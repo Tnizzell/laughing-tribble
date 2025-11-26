@@ -9,7 +9,10 @@ def Xform "Dock" (
     kind = "environment"
 )
 {
-    def Cube "Body"
+    def Cube "Body" (
+        # FIX: Moved to metadata section
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
     {
         double size = 1.0
         
@@ -21,8 +24,6 @@ def Xform "Dock" (
         # Visual color (Dark Grey/Brown)
         color3f[] primvars:displayColor = [(0.3, 0.25, 0.2)]
 
-        # Collision API (Static, no RigidBodyAPI means it won't move)
-        prepend apiSchemas = ["PhysicsCollisionAPI"]
         bool physics:collisionEnabled = 1
     }
 }

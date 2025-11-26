@@ -7,15 +7,19 @@
 
 def Xform "Yacht" (
     kind = "component"
+    # FIX: apiSchemas must be here, in the metadata section
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
 )
 {
-    # Physics API
-    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+    # Mass properties
     float physics:mass = 3200.0
     point3f physics:centerOfMass = (0, 0, 0.5)
 
     # Visual/Collision Geometry: The Hull
-    def Cube "Hull"
+    def Cube "Hull" (
+        # FIX: Collision API also goes in metadata
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
     {
         double size = 1.0
         float3 xformOp:scale = (11.0, 3.5, 1.5)
@@ -24,7 +28,6 @@ def Xform "Yacht" (
 
         color3f[] primvars:displayColor = [(0.9, 0.9, 0.9)]
 
-        prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
         bool physics:collisionEnabled = 1
     }
 
