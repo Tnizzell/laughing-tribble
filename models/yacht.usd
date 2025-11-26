@@ -1,0 +1,61 @@
+#usda 1.0
+(
+    defaultPrim = "Yacht"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "Yacht" (
+    kind = "component"
+)
+{
+    # Physics API
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+    float physics:mass = 3200.0
+    point3f physics:centerOfMass = (0, 0, 0.5)
+
+    # Visual/Collision Geometry: The Hull
+    def Cube "Hull"
+    {
+        double size = 1.0
+        float3 xformOp:scale = (11.0, 3.5, 1.5)
+        float3 xformOp:translate = (0, 0, 0.75)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+        color3f[] primvars:displayColor = [(0.9, 0.9, 0.9)]
+
+        prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        bool physics:collisionEnabled = 1
+    }
+
+    # Visual: The Mast
+    def Cylinder "Mast"
+    {
+        double height = 4.0
+        double radius = 0.1
+        float3 xformOp:translate = (0, 0, 2.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        color3f[] primvars:displayColor = [(0.1, 0.1, 0.1)]
+    }
+
+    # Sensor Mount 1: Front Camera
+    def Xform "Camera"
+    {
+        float3 xformOp:translate = (5.0, 0, 2.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Sensor Mount 2: Top Lidar
+    def Xform "Lidar"
+    {
+        float3 xformOp:translate = (0, 0, 3.5)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Sensor Mount 3: Radar
+    def Xform "Radar"
+    {
+        float3 xformOp:translate = (0, 0, 4.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}

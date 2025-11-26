@@ -173,31 +173,34 @@ class YachtDockingEnv(DirectRLEnv):
         return {"policy": obs}
 
     def _get_rewards(self) -> torch.Tensor:
-        """
-        Scalar reward per env.
-
-        Shaped toward:
-            - decreasing distance to dock
-            - small heading error
-            - low speed near dock
-        """
-        rel = self.dock_pos.unsqueeze(0) - self.pos  # (N, 3)
+        # print("!!! I AM USING THE NEW CODE !!!") # You can comment this out now
+        
+        rel = self.dock_pos.unsqueeze(0) - self.pos
         dist_xy = torch.norm(rel[:, :2], dim=-1)
+        vel_mag = torch.norm(self.vel, dim=-1)
+        
+        # 1. POSITIVE Distance Reward (0.0 to 1.0)
+        # This prevents the -15,000 score
+        r_dist = 1.0 / (1.0 + 0.5 * dist_xy)
 
+        # 2. Small Velocity Penalty
+        r_vel = -0.05 * vel_mag
+
+        # 3. Small Action Penalty
+        r_action = -0.001 * torch.sum(torch.square(self.actions), dim=-1)
+
+        # 4. Heading Bonus
         desired_yaw = torch.atan2(rel[:, 1], rel[:, 0])
         yaw_err = wrap_to_pi(desired_yaw - self.yaw)
+        r_heading = 0.1 * (1.0 - torch.abs(yaw_err) / 3.14159)
 
-        r_approach = -dist_xy
-        r_heading = -torch.abs(yaw_err)
-        r_slow = -torch.norm(self.vel, dim=-1)
+        # 5. Success Bonus
+        is_close = dist_xy < 1.5
+        is_slow = vel_mag < 0.2
+        r_success = (is_close & is_slow).float() * 2.0
 
-        reward = r_approach + 0.5 * r_heading + 0.2 * r_slow
-
-        # Log some metrics for extras
-        self.extras["dist_to_dock"] = dist_xy
-        self.extras["yaw_error"] = yaw_err
-
-        return reward
+        total_reward = r_dist + r_vel + r_action + r_heading + r_success
+        return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         """

@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    defaultPrim = "Dock"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "Dock" (
+    kind = "environment"
+)
+{
+    def Cube "Body"
+    {
+        double size = 1.0
+        
+        # A large rectangular dock (20m long, 6m wide, 1m tall)
+        float3 xformOp:scale = (20.0, 6.0, 1.0)
+        float3 xformOp:translate = (0, 0, 0.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+        # Visual color (Dark Grey/Brown)
+        color3f[] primvars:displayColor = [(0.3, 0.25, 0.2)]
+
+        # Collision API (Static, no RigidBodyAPI means it won't move)
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+        bool physics:collisionEnabled = 1
+    }
+}
