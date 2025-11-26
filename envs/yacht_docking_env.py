@@ -235,9 +235,6 @@ class YachtDockingEnv(DirectRLEnv):
     def _setup_scene(self):
         self.yacht = self.scene["yacht"]
         self.dock = self.scene["dock"]
-        
-        # Resolve the rigid body indices
-        self._yacht_body_idx = self.yacht.body_indices[0]
 
 
     def _reset_idx(self, env_ids: Sequence[int]):
